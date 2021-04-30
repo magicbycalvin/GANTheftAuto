@@ -27,9 +27,20 @@ class ImgPreprocessor:
         self.M = cv2.getPerspectiveTransform(src, dst)
         self.Minv = cv2.getPerspectiveTransform(dst, src)
 
+        self.img_list = []
+
     def transform(self, img):
         warped = cv2.warpPerspective(img, M, (width, height))
         return warped
+
+    def get_img(self):
+        pass
+
+    def load_img(self, fname):
+        self.img_list.append(fname)
+
+    def load_img_dir(self, path):
+        self._img_dir = path
 
 
 # def order_points(pts):
