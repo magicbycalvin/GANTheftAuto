@@ -135,3 +135,44 @@ if __name__ == '__main__':
     plt.figure()
     plt.imshow(warped)
     plt.title('After Warp')
+
+    img_path = '../../data/carla-recordings'
+    save_path = '../../data/preproc'
+    # img_name = 'test_image221411.png'
+    for img_name in [i for i in os.listdir(img_path) if i.endswith('.png')]:
+
+        fname = os.path.join(img_path, img_name)
+
+        img = cv2.imread(fname)
+        height, width, _ = img.shape
+        src = np.float32([
+            [304, 203],
+            [335, 203],
+            [width, height],
+            [0, height]])
+        dst = np.float32([
+            [304, 203],
+            [335, 203],
+            [336, height],
+            [301, height]])
+        # src = order_points(src)
+        # dst = order_points(dst)
+
+        M = cv2.getPerspectiveTransform(src, dst)
+        Minv = cv2.getPerspectiveTransform(dst, src)
+        warped = cv2.warpPerspective(img, M, (width, height))
+
+        spath = os.path.join(save_path, 'preproc' + img_name)
+        cv2.imwrite(spath, warped)
+
+        # warped = four_point_transform(img, src)
+
+        # plt.close('all')
+
+        # plt.figure()
+        # plt.imshow(img)
+        # plt.title('Before Warp')
+
+        # plt.figure()
+        # plt.imshow(warped)
+        # plt.title('After Warp')
