@@ -11,6 +11,8 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
+import settings
+
 
 class ImgPreprocessor:
     def __init__(self):
@@ -103,28 +105,76 @@ if __name__ == '__main__':
     img_path = '../../data/carla-recordings'
     img_name = 'test_image221411.png'
 
-    fname = os.path.join(img_path, img_name)
+    img_path = '../../data/carla-recordings'
+    save_path = '../../data/preproc'
+    # img_name = 'test_image221411.png'
+    for img_name in [i for i in os.listdir(img_path) if i.endswith('.png')]:
+        fname = os.path.join(img_path, img_name)
 
-    img = cv2.imread(fname)
-    height, width, _ = img.shape
-    src = np.float32([
-        [304, 203],
-        [335, 203],
-        [width, height],
-        [0, height]])
-    dst = np.float32([
-        [304, 203],
-        [335, 203],
-        [336, height],
-        [301, height]])
-    # src = order_points(src)
-    # dst = order_points(dst)
+        img = cv2.imread(fname)
+        height, width, _ = img.shape
+        # src = np.float32([
+        #     [304, 203],
+        #     [335, 203],
+        #     [width, height],
+        #     [0, height]])
+        # dst = np.float32([
+        #     [304, 203],
+        #     [335, 203],
+        #     [336, height],
+        #     [301, height]])
+        # src = order_points(src)
+        # dst = order_points(dst)
 
-    M = cv2.getPerspectiveTransform(src, dst)
-    Minv = cv2.getPerspectiveTransform(dst, src)
-    warped = cv2.warpPerspective(img, M, (width, height))
+        Lhs = np.zeros((2,2), dtype= np.float32)
+        Rhs = np.zeros((2,1), dtype= np.float32)
 
-    # warped = four_point_transform(img, src)
+        edges = cv2.Canny(img, 225, 175)
+        lines = cv2.HoughLinesP(edges, 0.5, np.pi/180, 50, minLineLength=120, maxLineGap=50)
+        for line in lines:
+            x1, y1, x2, y2 = line.squeeze()
+            ang = np.arctan2(y2-y1, x2-x1)
+
+            # Remove any lines that aren't mostly vertical
+            if (abs(ang) > np.pi/4 and abs(ang) < 3*np.pi/4):
+                cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), thickness=2)
+                continue
+
+            cv2.line(img, (x1, y1), (x2, y2),(255, 0, 0), thickness=2)
+            normal = np.array([[-(y2-y1)],
+                               [x2-x1]], dtype=np.float32)
+            normal /= np.linalg.norm(normal)
+
+            point = np.array([[x1],[y1]], dtype=np.float32)
+            outer = normal@normal.T
+
+            Lhs += outer
+            Rhs += outer@point
+
+        vanishing_point = np.linalg.inv(Lhs)@Rhs
+
+        top = vanishing_point[1] + 60
+        bottom = settings.ORIGINAL_SIZE[1]-35
+        width = 530
+        def on_line(p1, p2, ycoord):
+            return [p1[0]+ (p2[0]-p1[0])/float(p2[1]-p1[1])*(ycoord-p1[1]), ycoord]
+
+        p1 = [vanishing_point[0] - width/2, top]
+        p2 = [vanishing_point[0] + width/2, top]
+        p3 = on_line(p2, vanishing_point, bottom)
+        p4 = on_line(p1, vanishing_point, bottom)
+        src = np.array([p1,p2,p3,p4], dtype=np.float32)
+
+        dst = np.array([[0, 0], [settings.UNWARPED_SIZE[0], 0],
+                               [settings.UNWARPED_SIZE[0], settings.UNWARPED_SIZE[1]],
+                               [0, settings.UNWARPED_SIZE[1]]], dtype=np.float32)
+
+        M = cv2.getPerspectiveTransform(src, dst)
+        Minv = cv2.getPerspectiveTransform(dst, src)
+        warped = cv2.warpPerspective(img, M, (width, height))
+
+        spath = os.path.join(save_path, 'preproc' + img_name)
+        cv2.imwrite(spath, warped)
 
     plt.close('all')
 
@@ -133,9 +183,14 @@ if __name__ == '__main__':
     plt.title('Before Warp')
 
     plt.figure()
+    plt.imshow(edges)
+    plt.title('Edges')
+
+    plt.figure()
     plt.imshow(warped)
     plt.title('After Warp')
 
+"""
     img_path = '../../data/carla-recordings'
     save_path = '../../data/preproc'
     # img_name = 'test_image221411.png'
@@ -176,3 +231,4 @@ if __name__ == '__main__':
         # plt.figure()
         # plt.imshow(warped)
         # plt.title('After Warp')
+"""
