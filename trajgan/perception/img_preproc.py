@@ -137,10 +137,10 @@ if __name__ == '__main__':
 
             # Remove any lines that aren't mostly vertical
             if (abs(ang) > np.pi/4 and abs(ang) < 3*np.pi/4):
-                cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), thickness=2)
+                # cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), thickness=2)
                 continue
 
-            cv2.line(img, (x1, y1), (x2, y2),(255, 0, 0), thickness=2)
+            # cv2.line(img, (x1, y1), (x2, y2),(255, 0, 0), thickness=2)
             normal = np.array([[-(y2-y1)],
                                [x2-x1]], dtype=np.float32)
             normal /= np.linalg.norm(normal)
