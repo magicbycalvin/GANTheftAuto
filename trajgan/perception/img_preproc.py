@@ -115,9 +115,9 @@ class ImgPreprocessor:
 
 
 if __name__ == '__main__':
-    img_path = '../../data/carla-recordings'
-    img_name = 'test_image221411.png'
-    save_path = '../../data/preproc'
+    img_path = '../../data/carla-recordings/out9'
+    img_name = '4112.png'
+    save_path = '../../data/preproc/trin_data'
 
     preproc = ImgPreprocessor()
     preproc.load_img_dir(img_path)
