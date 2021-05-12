@@ -121,4 +121,4 @@ if __name__ == '__main__':
 
     preproc = ImgPreprocessor()
     preproc.load_img_dir(img_path)
-    preproc.preproc_batch(save_path)
+    # preproc.preproc_batch(save_path)
