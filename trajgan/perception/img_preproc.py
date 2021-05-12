@@ -37,7 +37,7 @@ class ImgPreprocessor:
         self.img_list = []
         self._cur_img = None
 
-    def transform(self, img, return_xform_mat=False):
+    def transform(self, img, return_xform_mat=False, return_vp=False):
         height, width = self._warp_size
         Lhs = np.zeros((2,2), dtype= np.float32)
         Rhs = np.zeros((2,1), dtype= np.float32)
@@ -88,6 +88,8 @@ class ImgPreprocessor:
 
         if return_xform_mat:
             return warped, M, Minv
+        elif return_vp:
+            return warped, vanishing_point, 
         else:
             return warped
 
@@ -121,4 +123,5 @@ if __name__ == '__main__':
 
     preproc = ImgPreprocessor()
     preproc.load_img_dir(img_path)
-    # preproc.preproc_batch(save_path)
+    # preproc.preproc_batch(save_path) preproc_image_test017257
+

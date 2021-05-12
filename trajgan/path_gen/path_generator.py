@@ -5,6 +5,11 @@ Created on Tue May 11 22:40:49 2021
 @author: SysAdmin
 """
 
+import os
+import sys
+sys.path.append('..')
+
+import cv2
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from numba import njit
@@ -12,74 +17,75 @@ import numpy as np
 from scipy.optimize import Bounds, minimize
 import time
 
+from perception.img_preproc import ImgPreprocessor
 from optimization.AngularRate import angularRate
 from optimization.Speed import speed
 from optimization.ObstacleAvoidance import obstacleAvoidance
 from polynomial.bernstein import Bernstein
 
 
-FIG_DIR = 'Figures/Dubins'
-FIG_FORMAT = 'svg'
+# FIG_DIR = 'Figures/Dubins'
+# FIG_FORMAT = 'svg'
 
 
-def setRCParams():
-    # Run this to make sure that the matplotlib plots have the correct font type
-    # for an IEEE publication. Also sets font sizes and line widths for easier
-    # viewing.
-    plt.rcParams.update({
-                'font.size': 40,
-                'pdf.fonttype': 42,
-                'ps.fonttype': 42,
-                'xtick.labelsize': 40,
-                'ytick.labelsize': 40,
-                'lines.linewidth': 4,
-                'lines.markersize': 18,
-                'figure.figsize': [13.333, 10]
-                })
-    # plt.tight_layout()
+# def setRCParams():
+#     # Run this to make sure that the matplotlib plots have the correct font type
+#     # for an IEEE publication. Also sets font sizes and line widths for easier
+#     # viewing.
+#     plt.rcParams.update({
+#                 'font.size': 40,
+#                 'pdf.fonttype': 42,
+#                 'ps.fonttype': 42,
+#                 'xtick.labelsize': 40,
+#                 'ytick.labelsize': 40,
+#                 'lines.linewidth': 4,
+#                 'lines.markersize': 18,
+#                 'figure.figsize': [13.333, 10]
+#                 })
+#     # plt.tight_layout()
 
 
-def resetRCParams():
-    # Reset the matplotlib parameters
-    plt.rcParams.update(plt.rcParamsDefault)
+# def resetRCParams():
+#     # Reset the matplotlib parameters
+#     plt.rcParams.update(plt.rcParamsDefault)
 
 
-def animateTrajectory(trajectories):
-    """Animates the trajectories
-    """
-    global ani
+# def animateTrajectory(trajectories):
+#     """Animates the trajectories
+#     """
+#     global ani
 
-    curveLen = len(trajectories[0].curve[0])
-    fig, ax = plt.subplots()
-    [ax.plot(traj.curve[0], traj.curve[1], '-', lw=3) for traj in trajectories]
-    lines = [ax.plot([], [], 'o', markersize=20)[0] for traj in trajectories]
+#     curveLen = len(trajectories[0].curve[0])
+#     fig, ax = plt.subplots()
+#     [ax.plot(traj.curve[0], traj.curve[1], '-', lw=3) for traj in trajectories]
+#     lines = [ax.plot([], [], 'o', markersize=20)[0] for traj in trajectories]
 
-    def init():
-        for line in lines:
-            line.set_data([], [])
-        return lines
+#     def init():
+#         for line in lines:
+#             line.set_data([], [])
+#         return lines
 
-    def animate(frame):
-        for i, line in enumerate(lines):
-            traj = trajectories[i]
-            try:
-                line.set_data(traj.curve[0][frame],
-                              traj.curve[1][frame])
-            except IndexError:
-                line.set_data(traj.curve[0][curveLen-frame-1],
-                              traj.curve[1][curveLen-frame-1])
-        return lines
+#     def animate(frame):
+#         for i, line in enumerate(lines):
+#             traj = trajectories[i]
+#             try:
+#                 line.set_data(traj.curve[0][frame],
+#                               traj.curve[1][frame])
+#             except IndexError:
+#                 line.set_data(traj.curve[0][curveLen-frame-1],
+#                               traj.curve[1][curveLen-frame-1])
+#         return lines
 
-    plt.axis('off')
-    ani = animation.FuncAnimation(fig,
-                                  animate,
-                                  len(trajectories[0].curve[0])*2,
-                                  init_func=init,
-                                  interval=10,
-                                  blit=True,
-                                  repeat=True)
+#     plt.axis('off')
+#     ani = animation.FuncAnimation(fig,
+#                                   animate,
+#                                   len(trajectories[0].curve[0])*2,
+#                                   init_func=init,
+#                                   interval=10,
+#                                   blit=True,
+#                                   repeat=True)
 
-    plt.show()
+#     plt.show()
 
 
 def initGuess(params):
@@ -256,86 +262,110 @@ def cost(x):
         return np.inf
 
 
-def plotConstraints(trajs, params, legNames):
-    """
-    Plots the constraints of the problem to verify whether they are being met.
-    Parameters
-    ----------
-    trajs : list
-        List of Bernstein trajectories.
-    params : Parameters
-        Parameters of the problem.
-    Returns
-    -------
-    None.
-    """
-    XLIM = [-1, 11]
-    speedFig, speedAx = plt.subplots()
-    tanAngFig, tanAngAx = plt.subplots()
-    angRateFig, angRateAx = plt.subplots()
+# def plotConstraints(trajs, params, legNames):
+#     """
+#     Plots the constraints of the problem to verify whether they are being met.
+#     Parameters
+#     ----------
+#     trajs : list
+#         List of Bernstein trajectories.
+#     params : Parameters
+#         Parameters of the problem.
+#     Returns
+#     -------
+#     None.
+#     """
+#     XLIM = [-1, 11]
+#     speedFig, speedAx = plt.subplots()
+#     tanAngFig, tanAngAx = plt.subplots()
+#     angRateFig, angRateAx = plt.subplots()
 
-    for i, traj in enumerate(trajs):
-        xdot = traj.diff().x
-        ydot = traj.diff().y
-        xddot = xdot.diff()
-        yddot = ydot.diff()
+#     for i, traj in enumerate(trajs):
+#         xdot = traj.diff().x
+#         ydot = traj.diff().y
+#         xddot = xdot.diff()
+#         yddot = ydot.diff()
 
-        speed = xdot*xdot + ydot*ydot
-        speed.plot(speedAx, showCpts=False, label=legNames[i])
+#         speed = xdot*xdot + ydot*ydot
+#         speed.plot(speedAx, showCpts=False, label=legNames[i])
 
-        tanAng = ydot / xdot
-        tanAng.plot(tanAngAx, showCpts=False, label=legNames[i])
+#         tanAng = ydot / xdot
+#         tanAng.plot(tanAngAx, showCpts=False, label=legNames[i])
 
-        num = yddot*xdot - xddot*ydot
-        den = xdot*xdot + ydot*ydot
-        angRate = num / den
-        angRate.plot(angRateAx, showCpts=False, label=legNames[i])
+#         num = yddot*xdot - xddot*ydot
+#         den = xdot*xdot + ydot*ydot
+#         angRate = num / den
+#         angRate.plot(angRateAx, showCpts=False, label=legNames[i])
 
-    speedAx.plot(XLIM, [params.vmax**2]*2, '--', label=r'$v^2_{max}$')
+#     speedAx.plot(XLIM, [params.vmax**2]*2, '--', label=r'$v^2_{max}$')
 
-    angRateAx.plot(XLIM, [params.wmax]*2, '--', label=r'$\omega_{max}$')
-    angRateAx.plot(XLIM, [-params.wmax]*2, '--', label=r'$\omega_{min}$')
+#     angRateAx.plot(XLIM, [params.wmax]*2, '--', label=r'$\omega_{max}$')
+#     angRateAx.plot(XLIM, [-params.wmax]*2, '--', label=r'$\omega_{min}$')
 
-    speedAx.set_xlim(XLIM)
-    speedAx.legend(fontsize=32)
-    speedAx.set_xlabel('Time (s)')
-    speedAx.set_ylabel(r'Squared Speed $\left( \frac{m}{s} \right)^2$')
-    speedAx.set_title('Speed Constraints')
-    tanAngAx.set_xlim(XLIM)
-    tanAngAx.set_ylim([-25, 25])
-    tanAngAx.legend(fontsize=32)
-    tanAngAx.set_xlabel('Time (s)')
-    tanAngAx.set_ylabel(r'$\tan (\psi)$')
-    tanAngAx.set_title('Tangent of Heading Angle')
-    angRateAx.set_xlim(XLIM)
-    angRateAx.set_ylim([-7.5, 3])
-    angRateAx.legend(fontsize=32)
-    angRateAx.set_xlabel('Time (s)')
-    angRateAx.set_ylabel(r'Angular Rate $\left( \frac{rad}{s} \right)$')
-    angRateAx.set_title('Angular Velocity Constraints')
+#     speedAx.set_xlim(XLIM)
+#     speedAx.legend(fontsize=32)
+#     speedAx.set_xlabel('Time (s)')
+#     speedAx.set_ylabel(r'Squared Speed $\left( \frac{m}{s} \right)^2$')
+#     speedAx.set_title('Speed Constraints')
+#     tanAngAx.set_xlim(XLIM)
+#     tanAngAx.set_ylim([-25, 25])
+#     tanAngAx.legend(fontsize=32)
+#     tanAngAx.set_xlabel('Time (s)')
+#     tanAngAx.set_ylabel(r'$\tan (\psi)$')
+#     tanAngAx.set_title('Tangent of Heading Angle')
+#     angRateAx.set_xlim(XLIM)
+#     angRateAx.set_ylim([-7.5, 3])
+#     angRateAx.legend(fontsize=32)
+#     angRateAx.set_xlabel('Time (s)')
+#     angRateAx.set_ylabel(r'Angular Rate $\left( \frac{rad}{s} \right)$')
+#     angRateAx.set_title('Angular Velocity Constraints')
 
 
-def saveFigs():
-    import os
-    # Create a Figures directory if it doesn't already exist
-    if not os.path.isdir(FIG_DIR):
-        os.mkdir(FIG_DIR)
+# def saveFigs():
+#     import os
+#     # Create a Figures directory if it doesn't already exist
+#     if not os.path.isdir(FIG_DIR):
+#         os.mkdir(FIG_DIR)
 
-    for i in plt.get_fignums():
-        fig = plt.figure(i)
-        ax = fig.get_axes()[0]
-        title = ax.get_title()
-        print(f'Saving figure {i} - {title}')
+#     for i in plt.get_fignums():
+#         fig = plt.figure(i)
+#         ax = fig.get_axes()[0]
+#         title = ax.get_title()
+#         print(f'Saving figure {i} - {title}')
 
-        ax.set_title('')
-        plt.tight_layout()
-        plt.draw()
-        saveName = os.path.join(FIG_DIR, title.replace(' ', '_') + '.' + FIG_FORMAT)
-        fig.savefig(saveName, format=FIG_FORMAT)
-        ax.set_title(title)
-        plt.draw()
+#         ax.set_title('')
+#         plt.tight_layout()
+#         plt.draw()
+#         saveName = os.path.join(FIG_DIR, title.replace(' ', '_') + '.' + FIG_FORMAT)
+#         fig.savefig(saveName, format=FIG_FORMAT)
+#         ax.set_title(title)
+#         plt.draw()
 
-    print('Done saving figures')
+#     print('Done saving figures')
+
+
+# def pix2meters(img):
+#     img = pimg.imread(img_path)
+#     img = cv2.undistort(img, cam_matrix, dist_coeffs)
+#     img = cv2.warpPerspective(img, M, settings.UNWARPED_SIZE)
+#     img_hsl = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+#     mask = img_hsl[:,:,1]>128
+#     mask[:, :50]=0
+#     mask[:, -50:]=0
+#     mom = cv2.moments(mask[:,:settings.UNWARPED_SIZE[0]//2].astype(np.uint8))
+#     x1 = mom["m10"]/mom["m00"]
+#     mom = cv2.moments(mask[:,settings.UNWARPED_SIZE[0]//2:].astype(np.uint8))
+#     x2 = settings.UNWARPED_SIZE[0]//2 + mom["m10"]/mom["m00"]
+#     cv2.line(img, (int(x1), 0), (int(x1), settings.UNWARPED_SIZE[1]), (255, 0, 0), 3)
+#     cv2.line(img, (int(x2), 0), (int(x2), settings.UNWARPED_SIZE[1]), (0, 0, 255), 3)
+#     if (x2-x1<min_wid):
+#         min_wid = x2-x1
+
+def generate_path(x0, y0, img):
+    proc = ImgPreprocessor()
+    img_xfm, vp = proc.transform(img)
+    
+    
 
 
 class Parameters:
@@ -363,60 +393,28 @@ class Parameters:
 
 
 if __name__ == '__main__':
-    plt.close('all')
-    setRCParams()
+    img_path = os.path.join('..', '..', 'data', 'carla-recordings', 'test_image221581.png')
+    img = cv2.imread(img_path)
+    # # Set everything up for the optimization
+    # params = Parameters()
+    # x0 = initGuess(params)
+    # lb = np.array([-300]*2*(params.deg-3) + [0.001])
+    # ub = np.array([300]*2*(params.deg-3) + [np.inf])
+    # bounds = Bounds(lb, ub)
 
-    # Set everything up for the optimization
-    params = Parameters()
-    x0 = initGuess(params)
-    lb = np.array([-300]*2*(params.deg-3) + [0.001])
-    ub = np.array([300]*2*(params.deg-3) + [np.inf])
-    bounds = Bounds(lb, ub)
+    # cons = [{'type': 'ineq',
+    #          'fun': lambda x: nonlcon(x, params)}]
 
-    legNames = ('No Elevation', 'Elevated by 30', 'Elevated by 100', 'Exact Extrema')
-    legNamesI = iter(legNames)
-    fig, ax = plt.subplots()
-    trajs = []
-    for degElev in [0, 30, 100, np.inf]:
-        params.degElev = degElev
-        cons = [{'type': 'ineq',
-                 'fun': lambda x: nonlcon(x, params)}]
+    # # Call the optimizer
+    # results = minimize(cost, x0,
+    #                    constraints=cons,
+    #                    bounds=bounds,
+    #                    method='SLSQP',
+    #                    options={'maxiter': 250,
+    #                             'disp': True,
+    #                             'iprint': 1})
 
-        # Call the optimizer
-        results = minimize(cost, x0,
-                           constraints=cons,
-                           bounds=bounds,
-                           method='SLSQP',
-                           options={'maxiter': 250,
-                                    'disp': True,
-                                    'iprint': 1})
-
-        # Plot everything
-        y, tf = reshape(results.x, params.deg, params.inipt, params.finalpt, params.inispeed,
-                        params.finalspeed, params.inipsi, params.finalpsi)
-        trajs.append(Bernstein(y, t0=0., tf=tf))
-        x0 = results.x
-
-    for traj in trajs:
-        traj.plot(ax, showCpts=False, label=next(legNamesI))
-
-    obs1 = plt.Circle(params.obstacles[0], radius=params.dsafe, ec='k', fc='r')
-    obs2 = plt.Circle(params.obstacles[1], radius=params.dsafe, ec='k', fc='g')
-    ax.add_artist(obs1)
-    ax.add_artist(obs2)
-
-    ax.set_title('Dubins Car Time Optimal')
-    ax.set_xlim([-0.5, 15.5])
-    ax.set_ylim([-0.5, 10.5])
-    ax.set_xlabel('X Position (m)')
-    ax.set_ylabel('Y Position (m)')
-    ax.set_aspect('equal')
-    ax.legend()
-    plt.tight_layout()
-
-    plotConstraints(trajs, params, legNames)
-
-    saveFigs()
-
-    plt.show()
-    resetRCParams()
+    # # Plot everything
+    # y, tf = reshape(results.x, params.deg, params.inipt, params.finalpt, params.inispeed,
+    #                 params.finalspeed, params.inipsi, params.finalpsi)
+    # traj = Bernstein(y, t0=0., tf=tf)
