@@ -49,5 +49,4 @@ This folder has all the data images after segmentation used to train the GAN.
 ## path_gen 
 
 This folder contains 2 folders, “optimization” and “polynomial”, and path_generator.py file.  
-
-### optimization  
+ 
