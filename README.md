@@ -38,11 +38,11 @@ This folder contains several versions of the GAN implemented
 
 The training folder contains three different Jupyter Notebook files and a training_data folder. The three. ipynb files were created to program the GAN, in which GANNAV_Restructure_1.ipynb is the newest version of the GAN implementation, and data preprocessing.  
 
-#### training_data 
+### training_data 
 
 The training_data folder contains the train_data folder and the dataset.csv file. The csv file is used as an input for the GAN, this file has the necessary x and y desired control points for each image.  
 
-##### train_data 
+### train_data 
 
 This folder has all the data images after segmentation used to train the GAN. 
 
